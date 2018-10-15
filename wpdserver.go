@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -64,7 +65,12 @@ func api_article_exact(http_out http.ResponseWriter, r *http.Request) {
 	// get request varaibles
 	vars := mux.Vars(r)
 	article := strings.ToLower(vars["article"])
-	lang := strings.ToLower(vars["lang"])
+
+	var rx = regexp.MustCompile(`\W`)
+	lang := vars["lang"]
+	lang = strings.ToLower(lang)
+	lang = rx.ReplaceAllString(lang, "")
+	lang = lang[:2]
 
 	// establish connection to databse
 	db, err := sql.Open("postgres", string(db_credentials))
@@ -100,8 +106,13 @@ func api_article_exact(http_out http.ResponseWriter, r *http.Request) {
 func api_article_search(http_out http.ResponseWriter, r *http.Request) {
 	http_out.Header().Add("Content-Type", "application/json")
 	vars := mux.Vars(r)
-	search := strings.ToLower(vars["search"])
-	lang := strings.ToLower(vars["lang"])
+	search := strings.ToLower(vars["article"])
+
+	var rx = regexp.MustCompile(`\W`)
+	lang := vars["lang"]
+	lang = strings.ToLower(lang)
+	lang = rx.ReplaceAllString(lang, "")
+	lang = lang[:2]
 
 	db, err := sql.Open("postgres", string(db_credentials))
 	checkErr(err)
@@ -135,7 +146,12 @@ func api_search(http_out http.ResponseWriter, r *http.Request) {
 	http_out.Header().Add("Content-Type", "application/json")
 	vars := mux.Vars(r)
 	search := strings.ToLower(vars["search"])
-	lang := strings.ToLower(vars["lang"])
+
+	var rx = regexp.MustCompile(`\W`)
+	lang := vars["lang"]
+	lang = strings.ToLower(lang)
+	lang = rx.ReplaceAllString(lang, "")
+	lang = lang[:2]
 
 	db, err := sql.Open("postgres", string(db_credentials))
 	checkErr(err)
