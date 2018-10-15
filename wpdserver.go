@@ -16,6 +16,7 @@ import (
 // read in database credentials
 var db_credentials, err = ioutil.ReadFile(".db_credentials")
 
+// main function
 func main() {
 
 	// initialize router
@@ -35,6 +36,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8880", router))
 }
 
+// index route
 func api_index(http_out http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(
 		http_out,
@@ -57,6 +59,7 @@ func api_index(http_out http.ResponseWriter, r *http.Request) {
 `)
 }
 
+// article exact route
 func api_article_exact(http_out http.ResponseWriter, r *http.Request) {
 
 	// inform http_out that content is JSON
@@ -80,18 +83,17 @@ func api_article_exact(http_out http.ResponseWriter, r *http.Request) {
 	// execute query
 	rows, err := db.Query(
 		`select array_to_json(array_agg(row_to_json(t))) as res_string from
-			(select 
-				a.page_id, 
-				a.page_name, 
-				'`+lang+`' as page_lang, 
-				b.year, 
-				b.page_views 
-			from 
-			(select * from dict_`+lang+` where page_name = $1) as a 
-                            left join imports_en as b on a.page_id = b.page_id 
-			) as t 
-		;`,
-		article)
+		(select 
+		a.page_id, 
+		a.page_name, 
+		b.year, 
+		b.page_views as page_view_count
+		-- generate_series((b.year || '-01-01')::date, (b.year || '-12-31')::date, '1 day'::interval)::date as page_view_date, 
+		-- regexp_split_to_table(b.page_views, ',') as page_view_count 
+		from 
+			(select * from dict_`+lang+` where page_name = $1 limit 100) as a
+			left join imports_`+lang+` as b on a.page_id = b.page_id 
+	) as t;`, article)
 
 	checkErr(err)
 	for rows.Next() {
@@ -103,6 +105,7 @@ func api_article_exact(http_out http.ResponseWriter, r *http.Request) {
 
 }
 
+// articel search route
 func api_article_search(http_out http.ResponseWriter, r *http.Request) {
 	http_out.Header().Add("Content-Type", "application/json")
 	vars := mux.Vars(r)
@@ -123,14 +126,14 @@ func api_article_search(http_out http.ResponseWriter, r *http.Request) {
 			(select 
 				a.page_id, 
 				a.page_name, 
-				'`+lang+`' as page_lang, 
-				b.year, 
-				b.page_views 
-			from 
-			    (select * from dict_`+lang+` where page_name ~ $1) as a 
-                            left join imports_en as b on a.page_id = b.page_id 
-			limit 100) as t
-			;`, search)
+				b.year,
+				--generate_series((b.year || '-01-01')::date, (b.year || '-12-31')::date, '1 day'::interval)::date as page_view_date, 
+				--regexp_split_to_table(b.page_views, ',') as page_view_count 
+				b.page_views as page_view_count
+				from 
+					(select * from dict_`+lang+` where page_name ~ $1 limit 100) as a
+					left join imports_`+lang+` as b on a.page_id = b.page_id 
+		) as t;`, search)
 	checkErr(err)
 
 	for rows.Next() {
@@ -142,6 +145,7 @@ func api_article_search(http_out http.ResponseWriter, r *http.Request) {
 
 }
 
+// search route
 func api_search(http_out http.ResponseWriter, r *http.Request) {
 	http_out.Header().Add("Content-Type", "application/json")
 	vars := mux.Vars(r)
@@ -178,6 +182,7 @@ func api_search(http_out http.ResponseWriter, r *http.Request) {
 
 }
 
+// helper function: error checker
 func checkErr(err error) {
 	if err != nil {
 		panic(err)
