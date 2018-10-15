@@ -19,10 +19,28 @@ const (
 
 func main() {
 
+	// initialize router
 	router := mux.NewRouter().StrictSlash(true)
-	router.HandleFunc("/", Index)
-	router.HandleFunc("/todos", TodoIndex)
-	router.HandleFunc("/todos/{todoId}", TodoShow)
+
+	// Indes/
+	router.HandleFunc("/", api_index)
+
+	// Article/
+	router.HandleFunc("/article/{article}", api_article)
+
+	// Search/
+	router.HandleFunc("/search/{search}", api_search)
+
+	// initialize server with router and routes
+	log.Fatal(http.ListenAndServe(":8880", router))
+}
+
+func api_index(http_out http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(http_out, "- /article/{artiklename}\n- /search/{regex}\n")
+}
+
+func api_article(http_out http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(http_out, "{article}")
 
 	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s host=%s",
 		DB_USER, DB_PASSWORD, DB_NAME, DB_HOST)
@@ -32,30 +50,18 @@ func main() {
 
 	rows, err := db.Query("SELECT distinct page_view_date  FROM import_jobs;")
 	checkErr(err)
-	fmt.Println("page_view_date")
+	fmt.Fprintln(http_out, "page_view_date")
 
 	for rows.Next() {
 		var page_view_date string
 		err = rows.Scan(&page_view_date)
 		checkErr(err)
-		fmt.Printf("%s\n", page_view_date)
+		fmt.Fprintf(http_out, "%s\n", page_view_date)
 	}
-
-	log.Fatal(http.ListenAndServe(":8880", router))
 }
 
-func Index(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Welcome!")
-}
-
-func TodoIndex(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Todo Index!")
-}
-
-func TodoShow(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	todoId := vars["todoId"]
-	fmt.Fprintln(w, "Todo show:", todoId)
+func api_search(http_out http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(http_out, "{search}")
 }
 
 func checkErr(err error) {
