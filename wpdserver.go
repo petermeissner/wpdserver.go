@@ -97,10 +97,15 @@ func api_article_exact(http_out http.ResponseWriter, r *http.Request) {
 
 	checkErr(err)
 	for rows.Next() {
+
 		var res_string string
 		err = rows.Scan(&res_string)
-		checkErr(err)
-		fmt.Fprintf(http_out, "%s", res_string)
+
+		if err != nil {
+			fmt.Fprintf(http_out, "%s", `{"status": "error"}`)
+		} else {
+			fmt.Fprintf(http_out, `{"status": "ok", "data": %s}`, res_string)
+		}
 	}
 
 }
@@ -139,8 +144,12 @@ func api_article_search(http_out http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var res_string string
 		err = rows.Scan(&res_string)
-		checkErr(err)
-		fmt.Fprintf(http_out, "%s", res_string)
+
+		if err != nil {
+			fmt.Fprintf(http_out, "%s", `{"status": "error"}`)
+		} else {
+			fmt.Fprintf(http_out, `{"status": "ok", "data": %s}`, res_string)
+		}
 	}
 
 }
@@ -176,8 +185,12 @@ func api_search(http_out http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var res_string string
 		err = rows.Scan(&res_string)
-		checkErr(err)
-		fmt.Fprintf(http_out, "%s", res_string)
+
+		if err != nil {
+			fmt.Fprintf(http_out, "%s", `{"status": "error"}`)
+		} else {
+			fmt.Fprintf(http_out, `{"status": "ok", "data": %s}`, res_string)
+		}
 	}
 
 }
