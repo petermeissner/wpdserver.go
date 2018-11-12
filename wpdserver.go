@@ -92,7 +92,7 @@ func api_article_exact(http_out http.ResponseWriter, r *http.Request) {
 		-- regexp_split_to_table(b.page_views, ',') as page_view_count 
 		from 
 			(select * from dict_`+lang+` where page_name = $1 limit 100) as a
-			left join imports_`+lang+` as b on a.page_id = b.page_id 
+			left join page_views_daily_`+lang+` as b on a.page_id = b.page_id 
 	) as t;`, article)
 
 	checkErr(err)
@@ -137,7 +137,7 @@ func api_article_search(http_out http.ResponseWriter, r *http.Request) {
 				b.page_views as page_view_count
 				from 
 					(select * from dict_`+lang+` where page_name ~ $1 limit 100) as a
-					left join imports_`+lang+` as b on a.page_id = b.page_id 
+					left join page_views_daily_`+lang+` as b on a.page_id = b.page_id 
 		) as t;`, search)
 	checkErr(err)
 
