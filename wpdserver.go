@@ -40,7 +40,9 @@ func main() {
 func api_index(http_out http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(
 		http_out,
-		`{"api_1":
+		`{
+"note": "Data has been gathered by Peter Meissner in a project comissioned by Hertie School of Governance (Simon Munzert) with support by Daimler and Benz Foundation.",
+"api_1":
   [
     {
       "description": "article stats",
