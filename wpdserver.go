@@ -8,13 +8,14 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
-
+	"time"
+	
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 )
 
 // read in database credentials
-var db_credentials, err = ioutil.ReadFile(".db_credentials")
+var db_credentials, err = ioutil.ReadFile("/home/peter/wpdserver.go/.db_credentials")
 
 // main function
 func main() {
@@ -38,10 +39,35 @@ func main() {
 
 // index route
 func api_index(http_out http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(
+  
+  // establish connection to databse
+	db, err := sql.Open("postgres", string(db_credentials))
+	checkErr(err)
+	defer db.Close()
+
+  // log api usage
+	api_log(db, `index`, ``)
+	
+	// execute query
+	rows, err := db.Query(`select count(*) from api_usage;`)
+	
+	checkErr(err)
+	defer rows.Close()
+	
+for rows.Next() {
+
+		var res_string string
+		err = rows.Scan(&res_string)
+
+		if err != nil {
+			fmt.Fprintf(http_out, "%s", `{"status": "error"}`)
+		} else {
+			//fmt.Fprintf(http_out, `{"status": "ok", "data": %s}`, res_string)
+			fmt.Fprintf(
 		http_out,
 		`{
-"note": "Data has been gathered by Peter Meissner in a project comissioned by Hertie School of Governance (Simon Munzert) with support by Daimler and Benz Foundation.",
+"note": "Data has been gathered by Peter Meissner in a project comissioned by Hertie School of Governance (Dr. Simon Munzert) with support by Daimler and Benz Foundation.",
+"requests_served": %s,
 "api_1":
   [
     {
@@ -58,7 +84,11 @@ func api_index(http_out http.ResponseWriter, r *http.Request) {
     }
   ]
 }
-`)
+`, res_string)
+		}
+	}
+  
+	
 }
 
 // article exact route
@@ -79,9 +109,13 @@ func api_article_exact(http_out http.ResponseWriter, r *http.Request) {
 
 	// establish connection to databse
 	db, err := sql.Open("postgres", string(db_credentials))
-	checkErr(err)
+	
 	defer db.Close()
+	checkErr(err)
 
+  // log api usage
+	api_log(db, `articel_exact`, lang + ` ` + article)
+	
 	// execute query
 	rows, err := db.Query(
 		`select array_to_json(array_agg(row_to_json(t))) as res_string from
@@ -96,8 +130,10 @@ func api_article_exact(http_out http.ResponseWriter, r *http.Request) {
 			(select * from dict_`+lang+` where page_name = $1 limit 100) as a
 			left join page_views_daily_`+lang+` as b on a.page_id = b.page_id 
 	) as t;`, article)
-
+	
 	checkErr(err)
+	defer rows.Close()
+	
 	for rows.Next() {
 
 		var res_string string
@@ -128,6 +164,10 @@ func api_article_search(http_out http.ResponseWriter, r *http.Request) {
 	checkErr(err)
 	defer db.Close()
 
+  // log api usage
+	api_log(db, `articel_search`, lang + ` ` + search)
+	
+	// execute query
 	rows, err := db.Query(
 		`select array_to_json(array_agg(row_to_json(t))) as res_string from
 			(select 
@@ -141,7 +181,9 @@ func api_article_search(http_out http.ResponseWriter, r *http.Request) {
 					(select * from dict_`+lang+` where page_name ~ $1 limit 100) as a
 					left join page_views_daily_`+lang+` as b on a.page_id = b.page_id 
 		) as t;`, search)
+	
 	checkErr(err)
+	defer rows.Close()
 
 	for rows.Next() {
 		var res_string string
@@ -172,6 +214,10 @@ func api_search(http_out http.ResponseWriter, r *http.Request) {
 	checkErr(err)
 	defer db.Close()
 
+  // log api usage
+	api_log(db, `search`, lang + ` ` + search)
+	
+  // execute query
 	rows, err := db.Query(
 		`select array_to_json(array_agg(row_to_json(t))) as res_string from
 			(select 
@@ -182,7 +228,9 @@ func api_search(http_out http.ResponseWriter, r *http.Request) {
 			    (select * from dict_`+lang+` where page_name ~ $1) as a 
 			) as t
 			;`, search)
+	
 	checkErr(err)
+	defer rows.Close()
 
 	for rows.Next() {
 		var res_string string
@@ -197,9 +245,21 @@ func api_search(http_out http.ResponseWriter, r *http.Request) {
 
 }
 
+
+
 // helper function: error checker
 func checkErr(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+
+
+// helper function: log api request
+func api_log(db *sql.DB, api string, resource string) {
+	t := time.Now()
+  tformatted := t.Format(time.RFC3339)
+  
+	db.Query(`INSERT INTO api_usage (api, resource, ts) VALUES ($2, $3, $1);`, tformatted, api, resource)
 }
